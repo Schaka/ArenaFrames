@@ -208,11 +208,14 @@ local function CreateArenaFrame(unit,x,y)
 		buff = CreateFrame('Button', unit..'buff'..i, ArenaFrame)
 		buff:SetWidth(20)
 		buff:SetHeight(20)
-		buff:EnableMouse(true)
-		buff.unit = unit
-		buff.id = i
-		buff:SetScript('OnEnter', OnAuraEnter)
-		buff:SetScript('OnLeave', function() GameTooltip:Hide() end)
+		
+		if not clickThrough then
+			buff:EnableMouse(true)
+			buff.unit = unit
+			buff.id = i
+			buff:SetScript('OnEnter', OnAuraEnter)
+			buff:SetScript('OnLeave', function() GameTooltip:Hide() end)
+		end
 		
 		buff.Icon = buff:CreateTexture(nil, 'BORDER')
 		buff.Icon:SetPoint('TOPLEFT', 0, 0)
@@ -240,13 +243,16 @@ local function CreateArenaFrame(unit,x,y)
 		debuff = CreateFrame('Button', unit..'debuff'..i, ArenaFrame)
 		debuff:SetWidth(20)
 		debuff:SetHeight(20)
-		debuff:EnableMouse(true)
-		debuff.unit = unit
-		debuff.id = i
-		debuff.isDebuff = true
-		debuff:SetScript('OnEnter', OnAuraEnter)
-		debuff:SetScript('OnLeave', function() GameTooltip:Hide() end)
 		
+		if not clickThrough then
+			debuff:EnableMouse(true)
+			debuff.unit = unit
+			debuff.id = i
+			debuff.isDebuff = true
+			debuff:SetScript('OnEnter', OnAuraEnter)
+			debuff:SetScript('OnLeave', function() GameTooltip:Hide() end)
+		end
+				
 		debuff.Icon = debuff:CreateTexture(nil, 'BORDER')
 		debuff.Icon:SetPoint('TOPLEFT', 0, 0)
 		debuff.Icon:SetPoint('BOTTOMRIGHT', 0, 0)
