@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: ArenaFrames
+## Notes: Player like ArenaFrames
+## Author: Aelwi - Eredar EU
+
+ArenaFrames.lua
