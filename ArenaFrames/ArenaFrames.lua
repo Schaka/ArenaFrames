@@ -20,9 +20,9 @@ end
 local texture = 'Interface\\TargetingFrame\\UI-TargetingFrame'
 local ArenaHandler = CreateFrame('Frame')
 local trinketList = {
-	['PvP Trinket'] = 120,
-	['Every Man for Himself'] = 120,
-	['Will of the Forsaken'] = 45,
+	[select(1,GetSpellInfo(42292))] = 120,
+	[select(1,GetSpellInfo(59752))] = 120,
+	[select(1,GetSpellInfo(7744))] = 45,
 }
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
