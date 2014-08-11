@@ -1,0 +1,7 @@
+## Interface: 20400
+## Title: ArenaFrames
+## Notes: Player like ArenaFrames
+## Author: Schaka
+CastBar.xml
+ArenaFrames.lua
+bindings.lua

@@ -1,0 +1,32 @@
+<Bindings>
+  <Binding name="CLICK arena1_frame:LeftButton" header="ARENAFRAMES">
+    -- target1!
+  </Binding>
+  <Binding name="CLICK arena2_frame:LeftButton">
+    -- target2!
+  </Binding>
+  <Binding name="CLICK arena3_frame:LeftButton">
+    -- target3!
+  </Binding>
+  <Binding name="CLICK arena4_frame:LeftButton">
+    -- target4!
+  </Binding>
+  <Binding name="CLICK arena5_frame:LeftButton">
+    -- target5!
+  </Binding>
+  <Binding name="CLICK arena1_frame:RightButton">
+    -- target1!
+  </Binding>
+  <Binding name="CLICK arena2_frame:RightButton">
+    -- target2!
+  </Binding>
+  <Binding name="CLICK arena3_frame:RightButton">
+    -- target3!
+  </Binding>
+  <Binding name="CLICK arena4_frame:RightButton">
+    -- target4!
+  </Binding>
+  <Binding name="CCLICK arena5_frame:RightButton">
+    -- target5!
+  </Binding>
+</Bindings>

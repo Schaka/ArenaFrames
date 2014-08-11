@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.blizzard.com/wow/ui/">
+	<StatusBar name="ArenaCastingBarFrameTemplate" drawLayer="BORDER" virtual="true" hidden="hidden">
+        <Size x="80" y="14"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture setAllPoints="true">
+                    <Color r="0" g="0" b="0" a="0.5"/>
+                </Texture>        
+            </Layer>
+            <Layer level="ARTWORK">
+                <FontString name="$parentText" inherits="GameFontHighlightSmall">
+                    <Size x="80" y="16"/>
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="2"/>
+                    </Anchors>
+                </FontString>
+				<!--Interface\CastingBar\UI-CastingBar-Border-->
+				<!--Texture file="Interface\CastingBar\UI-CastingBar-Border-Small" name="$parentBorder">
+					<Size>
+						<AbsDimension y="14" x="80"/>
+					</Size>
+					<Anchors>
+						<Anchor point="TOP">
+							<Offset>
+								<AbsDimension y="28" x="0"/>
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture-->
+                <Texture name="$parentIcon" hidden="true">
+                    <Size x="16" y="16"/>
+                    <Anchors>
+                        <Anchor point="RIGHT" relativeTo="$parent" relativePoint="LEFT" x="-5" y="0"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture name="$parentSpark" file="Interface\CastingBar\UI-CastingBar-Spark" alphaMode="ADD">
+                    <Size x="32" y="32"/>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </Texture>
+                <Texture name="$parentFlash" alphaMode="ADD"> 
+                <!-- this needs to be here so the generic unit frame code will work right -->
+                    <Size x="256" y="64"/>
+                    <Anchors>
+                        <Anchor point="TOP" x="0" y="28"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+        <BarTexture file="Interface\TargetingFrame\UI-StatusBar"/>
+        <BarColor r="1.0" g="0.7" b="0.0"/>
+    </StatusBar>
+</Ui>	
