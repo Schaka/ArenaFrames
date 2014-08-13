@@ -2,6 +2,11 @@
 ## Title: ArenaFrames
 ## Notes: Player like ArenaFrames
 ## Author: Schaka
+## SavedVariables: ArenaFramesDB
+
+libs\LibStub\LibStub.lua
+libs\LibSimpleOptions-1.0\lib.xml
+
 CastBar.xml
 ArenaFrames.lua
 bindings.lua

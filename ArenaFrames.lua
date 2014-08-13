@@ -1,17 +1,26 @@
 local function log(msg) DEFAULT_CHAT_FRAME:AddMessage(msg) end -- alias for convenience
-
+ArenaFramesDB = ArenaFramesDB or { clickThrough = false,  movable = true, numBuffs = 16, numDebuffs = 16, buffSize = 20, debuffSize = 20}
 local x = -200							-- Vertical Position of the UnitFrames (anchored to UIParent)
 local y = 400							-- Horizontal Position of the UnitFrames
 local spacing = 190  					-- Spacing between the UnitFrames
-local numBuffs = 16						-- How many buffs do you want to see?
-local numDebuffs = 16					-- How many debuffs do you want to see?
-local showClassIcons = true				-- Show Class Icons on ArenaFrames or 2D Portrait of the Unit?
-local clickThrough = false				-- Helps to not accidentally click and target an ArenaUnit while turning Camera
-local frames = {						-- Which Units do you want to track? (I left out arena 4 and 5 because there is nearly no active 5vs5)
-	['arena1'] = true,					
-	['arena2'] = true, 
-	['arena3'] = true,	
+local SO = LibStub("LibSimpleOptions-1.0")
+
+local dtable = {
+    [0]="none", 
+    [1]="magic",
+    [2]="curse",
+    [3]="disease",
+    [4]="poison" 
 }
+
+local DTC = { 
+    ["none"] = { r = 0.80, g = 0, b = 0 },
+    ["magic"] = { r = 0.20, g = 0.60, b = 1.00 },
+    ["curse"] = { r = 0.60, g = 0.00, b = 1.00 },
+    ["disease"] = { r = 0.60, g = 0.40, b = 0 },
+    ["poison"] = { r = 0.00, g = 0.60, b = 0 },
+}
+
 
 local arenaUnits = { }
 local nameToUnit = { }
@@ -32,9 +41,7 @@ end
 --local texture = 'Interface\\TargetingFrame\\UI-TargetingFrame'
 local texture = "Interface\\AddOns\\ArenaFrames\\ArenaTexture"
 local ArenaHandler = CreateFrame('Frame')
-local trinketList = {
-	[select(1,GetSpellInfo(42292))] = 120,
-}
+
 local backdrop = {
 	bgFile = [=[Interface\ChatFrame\ChatFrameBackground]=],
 	insets = {left = -1, right = -1, top = -1, bottom = -1}
@@ -77,18 +84,6 @@ local function ClassToTexture(id)
     end
 end
 
--- Show AuraTooltip
-local function OnAuraEnter()
-	if(not this:IsVisible()) then return end
-	local unit = this:GetParent().unit
-		GameTooltip:SetOwner(this, 'ANCHOR_BOTTOMLEFT')
-	if(this.isDebuff) then
-		GameTooltip:SetUnitDebuff(unit, this.id)
-	else
-		GameTooltip:SetUnitBuff(unit, this.id)
-	end
-end
-
 
 --Creation of ArenaFrames e.g. CreateArenaFrame('arena1', 50, 100)
 local function CreateArenaFrame(unit,x,y)
@@ -99,16 +94,24 @@ local function CreateArenaFrame(unit,x,y)
 	ArenaFrame:SetWidth(232)
 	ArenaFrame:SetPoint('RIGHT', UIParent, x,y)
 	ArenaFrame:SetFrameStrata('TOOLTIP')
-	ArenaFrame:RegisterForClicks('AnyDown')
+	ArenaFrame:RegisterForClicks('AnyUp')
 	ArenaFrame:SetScript('OnEnter', UnitFrame_OnEnter)
 	ArenaFrame:SetScript('OnLeave', UnitFrame_OnLeave)
 	ArenaFrame.unit = unit
-	
-	if clickThrough then
+	ArenaFrame:RegisterForDrag("LeftButton")
+	ArenaFrame:SetMovable()
+	if ArenaFramesDB.clickThrough then
 		ArenaFrame:EnableMouse(false)
 	end
-	
-	--RegisterUnitWatch(ArenaFrame)
+	if ArenaFramesDB.movable then
+		ArenaFrame:SetScript("OnDragStart", function(self)
+			self:StartMoving()
+		end)
+		ArenaFrame:SetScript("OnDragStop", function(self)
+			self:StopMovingOrSizing()
+		end)
+		ArenaFrame:EnableMouse(true)
+	end
 	
 	--ArenaFrameTexture
 	ArenaFrame.texture = ArenaFrame:CreateTexture('$parentTexture', 'BORDER')
@@ -212,20 +215,11 @@ local function CreateArenaFrame(unit,x,y)
 	--Creation of the BuffFrames
 	local function CreateBuffFrame(i)
 		buff = CreateFrame('Button', unit..'buff'..i, ArenaFrame)
-		buff:SetWidth(20)
-		buff:SetHeight(20)
-		
-		if not clickThrough then
-			buff:EnableMouse(true)
-			buff.unit = unit
-			buff.id = i
-			buff:SetScript('OnEnter', OnAuraEnter)
-			buff:SetScript('OnLeave', function() GameTooltip:Hide() end)
-		end
+		buff:SetWidth(ArenaFramesDB.buffSize)
+		buff:SetHeight(ArenaFramesDB.buffSize)
 		
 		buff.Icon = buff:CreateTexture(nil, 'BORDER')
-		buff.Icon:SetPoint('TOPLEFT', 0, 0)
-		buff.Icon:SetPoint('BOTTOMRIGHT', 0, 0)
+		buff.Icon:SetAllPoints(buff)
 		
 		buff.Count = buff:CreateFontString(nil, 'OVERLAY')
 		buff.Count:SetFont('Fonts\\ARIALN.ttf', 12, 'OUTLINE')
@@ -237,7 +231,7 @@ local function CreateArenaFrame(unit,x,y)
 		
 		if i == 1 then
 			buff:SetPoint('TOP', ArenaFrame.power, 'BOTTOMLEFT', 0, -5)
-		elseif i == 7 then
+		elseif i == 8 then
 			buff:SetPoint('TOP', unit..'buff1', 'BOTTOM', 0, -3)
 		else
 			buff:SetPoint('LEFT', unit..'buff'..i-1, 'RIGHT', 2,0)
@@ -247,21 +241,11 @@ local function CreateArenaFrame(unit,x,y)
 	--Creation of the DebuffFrames
 	local function CreateDebuffFrame(i)
 		debuff = CreateFrame('Button', unit..'debuff'..i, ArenaFrame)
-		debuff:SetWidth(20)
-		debuff:SetHeight(20)
-		
-		if not clickThrough then
-			debuff:EnableMouse(true)
-			debuff.unit = unit
-			debuff.id = i
-			debuff.isDebuff = true
-			debuff:SetScript('OnEnter', OnAuraEnter)
-			debuff:SetScript('OnLeave', function() GameTooltip:Hide() end)
-		end
+		debuff:SetWidth(ArenaFramesDB.debuffSize)
+		debuff:SetHeight(ArenaFramesDB.debuffSize)
 				
 		debuff.Icon = debuff:CreateTexture(nil, 'BORDER')
-		debuff.Icon:SetPoint('TOPLEFT', 0, 0)
-		debuff.Icon:SetPoint('BOTTOMRIGHT', 0, 0)
+		debuff.Icon:SetAllPoints(debuff)
 		
 		debuff.Count = debuff:CreateFontString(nil, 'OVERLAY')
 		debuff.Count:SetFont('Fonts\\ARIALN.ttf', 12, 'OUTLINE')
@@ -271,22 +255,165 @@ local function CreateArenaFrame(unit,x,y)
 		debuff.Cooldown:SetReverse(true)
 		debuff.Cooldown:SetAllPoints(debuff.Icon)
 		
+		debuff.Border = debuff:CreateTexture(unit..'debuff'..i.."Border", "OVERLAY")
+		debuff.Border:SetTexture("Interface\\Buttons\\UI-Debuff-Overlays")
+		debuff.Border:SetHeight(ArenaFramesDB.debuffSize+2)
+		debuff.Border:SetWidth(ArenaFramesDB.debuffSize+2)
+		debuff.Border:SetPoint("CENTER", debuff, "CENTER")
+		debuff.Border:SetVertexColor(0, 0, 0, 0)
+		debuff.Border:SetTexCoord(0.296875, 0.5703125, 0,  0.515625)
+		
 		if i == 1 then
-			debuff:SetPoint('TOP', ArenaFrame.power, 'BOTTOMLEFT', 0, -60)
-		elseif i == 7 then
+			debuff:SetPoint('TOP', unit..'buff8', 'BOTTOM', 0, -3)
+		elseif i == 8 then
 			debuff:SetPoint('TOP', unit..'debuff1', 'BOTTOM', 0, -3)
 		else
 			debuff:SetPoint('LEFT', unit..'debuff'..i-1, 'RIGHT', 2,0)
 		end	
 	end
 	
-	for i=1,numBuffs do
+	for i=1,35 do
 		CreateBuffFrame(i)
 	end
-	for j=1,numDebuffs do
+	for j=1,35 do
 		CreateDebuffFrame(j)
 	end
 end
+
+function ArenaHandler:SetFrameMove()
+	for i=1,5 do
+		local ArenaFrame = _G["arena"..i.."_frame"]
+		if ArenaFramesDB.movable then
+			ArenaFrame:RegisterForDrag("LeftButton")
+			ArenaFrame:SetMovable(true)
+			ArenaFramesDB.clickThrough = false
+			ArenaFrame:SetScript("OnDragStart", function(self)
+				self:StartMoving()
+			end)
+			ArenaFrame:SetScript("OnDragStop", function(self)
+				self:StopMovingOrSizing()
+			end)
+		else
+			ArenaFrame:RegisterForDrag()
+			ArenaFrame:SetMovable(false)
+			ArenaFrame:SetScript("OnDragStart", nil)
+			ArenaFrame:SetScript("OnDragStop", nil)
+		end
+		
+		if ArenaFramesDB.clickThrough then
+			ArenaFrame:EnableMouse(false)
+		else
+			ArenaFrame:EnableMouse(true)
+		end
+	end
+end
+
+function ArenaHandler:PLAYER_LOGIN()
+	--Creation of the ArenaFrames
+	for i=1,5 do
+		CreateArenaFrame("arena"..i, x,-(i*spacing)+y)
+	end
+	self:CreateOptions()
+end
+
+function ArenaHandler:CreateOptions()
+	local panel = SO.AddOptionsPanel("Arena Frames", function() end)
+	self.panel = panel
+	SO.AddSlashCommand("Arena Frames","/aframes")
+	local title, subText = panel:MakeTitleTextAndSubText("Arena Frames Addon", "General settings")
+	local movable = panel:MakeToggle(
+	     'name', 'Enable moving',
+	     'description', 'Enables you to move the arenaframes with your mouse.',
+	     'default', false,
+	     'getFunc', function() return ArenaFramesDB.movable end,
+	     'setFunc', function(value)
+			ArenaFramesDB.movable = value
+			if value == true then ArenaFramesDB.clickThrough = false end	
+			ArenaHandler:SetFrameMove()
+			panel.refresh()
+		 end
+		)
+	movable:SetPoint("TOPLEFT",subText,"TOPLEFT",16,-32)
+	
+	local clickThrough = panel:MakeToggle(
+	     'name', 'Enable clickthrough',
+	     'description', 'Allows you to click on your frames and still move your mouse. Disables moving',
+	     'default', false,
+	     'getFunc', function() return ArenaFramesDB.clickThrough end,
+	     'setFunc', function(value) 
+			ArenaFramesDB.clickThrough = value
+			if value == true then ArenaFramesDB.movable = false end
+			ArenaHandler:SetFrameMove() 
+			panel.refresh()
+		 end
+		)    
+	clickThrough:SetPoint("TOPLEFT", movable ,"TOPLEFT", 120,0)
+	
+	local buffSize = panel:MakeSlider(
+	    'name', 'Buff size',
+	    'description', 'Choose arena frame buff size',
+	    'minText', '5',
+	    'maxText', '35',
+	    'minValue', 15,
+	    'maxValue', 35,
+	    'step', 1,
+	    'default', 20,
+	    'getFunc', function () return ArenaFramesDB.buffSize end,
+	    'setFunc', function(value) ArenaFramesDB.buffSize = (value*100)/100 ArenaHandler:ResizeAuras() end,
+	    'currentTextFunc', function(value) return (value*100)/100 end
+	)
+	buffSize:SetPoint("TOPLEFT", movable, "BOTTOMLEFT", 0, -10)
+	
+	local debuffSize = panel:MakeSlider(
+	    'name', 'Deuff size',
+	    'description', 'Choose arena frame debuff size',
+	    'minText', '5',
+	    'maxText', '35',
+	    'minValue', 15,
+	    'maxValue', 35,
+	    'step', 1,
+	    'default', 20,
+	    'getFunc', function () return ArenaFramesDB.debuffSize end,
+	    'setFunc', function(value) ArenaFramesDB.debuffSize = (value*100)/100 ArenaHandler:ResizeAuras() end,
+	    'currentTextFunc', function(value) return (value*100)/100 end
+	)
+	debuffSize:SetPoint("LEFT", buffSize, "RIGHT", 5, 0)
+	
+	local numBuffs = panel:MakeSlider(
+	    'name', 'Number of buffs',
+	    'description', 'Choose a bumber of buffs',
+	    'minText', '5',
+	    'maxText', '35',
+	    'minValue', 5,
+	    'maxValue', 35,
+	    'step', 1,
+	    'default', 12,
+	    'getFunc', function () return ArenaFramesDB.numBuffs end,
+	    'setFunc', function(value) ArenaFramesDB.numBuffs = (value*100)/100 ArenaHandler:ResizeAuras() end,
+	    'currentTextFunc', function(value) return (value*100)/100 end
+	)
+	numBuffs:SetPoint("TOPLEFT", buffSize, "BOTTOMLEFT", 0, -20)
+	
+	local numDebuffs = panel:MakeSlider(
+	    'name', 'Number of debuffs',
+	    'description', 'Choose a bumber of debuffs',
+	    'minText', '5',
+	    'maxText', '35',
+	    'minValue', 5,
+	    'maxValue', 35,
+	    'step', 1,
+	    'default', 12,
+	    'getFunc', function () return ArenaFramesDB.numDebuffs end,
+	    'setFunc', function(value) ArenaFramesDB.numDebuffs = (value*100)/100 ArenaHandler:ResizeAuras() end,
+	    'currentTextFunc', function(value) return (value*100)/100 end
+	)
+	numDebuffs:SetPoint("LEFT", numBuffs, "RIGHT", 5, 0)
+	
+	panel.refresh = function()
+		movable:SetChecked(ArenaFramesDB.movable)
+		clickThrough:SetChecked(ArenaFramesDB.clickThrough)
+	end
+end	
 
 function ArenaHandler:OnUpdate(elapsed)
 		for i=1, 5 do
@@ -401,9 +528,7 @@ function ArenaHandler:UpdateClass(target, class)
 	
 	local classIcon = _G[unit..'_classIcon']
 	classIcon:Show()
-	if showClassIcons then
-		classIcon:SetTexCoord(unpack(CLASS_BUTTONS[class]))
-	end
+	classIcon:SetTexCoord(unpack(CLASS_BUTTONS[class]))
 	
 	local power = _G[unit..'_ManaBar']
 	power:SetStatusBarColor(mpColors[class].r, mpColors[class].g, mpColors[class].b)
@@ -486,12 +611,14 @@ function ArenaHandler:PLAYER_ENTERING_WORLD()
 		unitDebuffs[k] = nil
 	end
 	for i=1,5 do
-		for j=1,numBuffs do
+		for j=1, 35 do
 			buff = _G["arena"..i.."buff"..j]
-			debuff = _G["arena"..i.."debuff"..j]
 			buff.Icon:SetTexture(nil)
 			buff.Cooldown:Hide()
 			buff.Count:SetText("")
+		end
+		for k=1, 35 do
+			debuff = _G["arena"..i.."debuff"..k]
 			debuff.Icon:SetTexture(nil)
 			debuff.Cooldown:Hide()
 			debuff.Count:SetText("")
@@ -519,6 +646,7 @@ end
 
 function ArenaHandler:TrinketUsed(target, id, cd)
 	local unit = nameToUnit[target]
+	if not unit then return end
 	local trinketCooldown = _G[unit..'_frameTrinketCooldown']
 	if id == 42292 then
 		trinketCooldown:SetCooldown(GetTime(), cd)
@@ -546,7 +674,7 @@ function ArenaHandler:CalculateBuffPositions(unit)
 		counter = counter + 1
 		--log(unit.."  "..v.icon.."  "..v.position.."  "..v.duration)
 	end
-	for i=counter, numBuffs do
+	for i=counter, 35 do
 		_G[unit.."buff"..i].Icon:SetTexture(nil)
 		_G[unit.."buff"..i].Cooldown:Hide()
 		_G[unit.."buff"..i].Count:SetText("")
@@ -564,6 +692,9 @@ function ArenaHandler:CalculateDebuffPositions(unit)
 			debuff.Count:SetText('')
 		end
 		
+		local color = DTC[dtable[v.debufftype]] or DTC.none
+		debuff.Border:SetVertexColor(color.r, color.g, color.b, 1)
+		
 		if v.duration and v.duration > 0 then
 			debuff.Cooldown:SetCooldown(v.startTime, v.duration)
 			debuff.Cooldown:Show()
@@ -574,15 +705,43 @@ function ArenaHandler:CalculateDebuffPositions(unit)
 		counter = counter + 1
 		--log(unit.."  "..v.icon.."  "..v.position.."  "..v.duration)
 	end
-	for i=counter, numDebuffs do
+	for i=counter, 35 do
 		_G[unit.."debuff"..i].Icon:SetTexture(nil)
 		_G[unit.."debuff"..i].Cooldown:Hide()
 		_G[unit.."debuff"..i].Count:SetText("")
+		_G[unit.."debuff"..i].Border:SetVertexColor(0, 0, 0, 0)
+	end
+end
+
+function ArenaHandler:ResizeAuras()
+	for i=1,5 do
+		for j=1, ArenaFramesDB.numBuffs do
+			local buff = _G['arena'..i..'buff'..j]
+			buff:Show()
+			buff:SetHeight(ArenaFramesDB.buffSize)
+			buff:SetWidth(ArenaFramesDB.buffSize)
+		end
+		for k=1, ArenaFramesDB.numDebuffs do
+			local debuff = _G['arena'..i..'debuff'..k]
+			debuff:Show()
+			debuff:SetHeight(ArenaFramesDB.debuffSize)
+			debuff:SetWidth(ArenaFramesDB.debuffSize)
+		end
+		-- hiding unnecessary buffs
+		for j=ArenaFramesDB.numBuffs+1, 35 do
+			local buff = _G['arena'..i..'buff'..j]
+			buff:Hide()
+		end
+		for k=ArenaFramesDB.numDebuffs+1, 35 do
+			local debuff = _G['arena'..i..'debuff'..k]
+			debuff:Hide()
+		end
 	end
 end
 
 function ArenaHandler:UpdateAuras(target, removeaura, count, endtime, duration, spellId, debufftype, isDebuff, caster)
 	local unit = nameToUnit[target]
+	if not unit then return end
 	endtime = endtime/1000
 	duration = duration/1000
 	local texture = select(3, GetSpellInfo(spellId))
@@ -651,6 +810,7 @@ function ArenaHandler:UpdateAuras(target, removeaura, count, endtime, duration, 
 			unitDebuffs[unit][spellId..caster].startTime = GetTime()-(duration-endtime)
 			unitDebuffs[unit][spellId..caster].duration = duration
 			unitDebuffs[unit][spellId..caster].count = count
+			unitDebuffs[unit][spellId..caster].debufftype = debufftype
 			self:CalculateDebuffPositions(unit)
 		end
 	end	
@@ -757,13 +917,9 @@ function ArenaHandler:HandleEvents(event,...)
 	self[event](self, ...)
 end
 
---Creation of the ArenaFrames
-for i=1,5 do
-	CreateArenaFrame("arena"..i, x,-(i*spacing)+y)
-end
-
 --Register all necessary events
 ArenaHandler:RegisterEvent('PLAYER_ENTERING_WORLD')
+ArenaHandler:RegisterEvent('PLAYER_LOGIN')
 ArenaHandler:RegisterEvent('CHAT_MSG_ADDON')
 ArenaHandler:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
 ArenaHandler:SetScript('OnEvent', ArenaHandler.HandleEvents)
@@ -773,19 +929,27 @@ ArenaHandler:SetScript('OnUpdate', ArenaHandler.OnUpdate)
 SlashCmdList.SHOWAF = function()
 	for i=1,5 do
 		_G['arena'..i..'_frame']:Show()
-		_G['arena'..i..'_frame'].Hide = _G['arena'..i..'_frame'].Show
 		_G['arena'..i..'_name']:SetText('arena'..i)
 		_G['arena'..i..'_frameHealthText']:SetText(30000)
 		_G['arena'..i..'_framePowerText']:SetText(30000)
 		_G['arena'..i..'_classIcon']:SetTexCoord(0, 0.25, 0, 0.25)
 		_G['arena'..i..'_classIcon']:Show()
 		_G['arena'..i..'_frameTrinketCooldown']:SetCooldown(GetTime(),120)
-		for j=1, numBuffs do
-			buff = _G['arena'..i..'buff'..j]
+		for j=1, 35 do
+			local buff = _G['arena'..i..'buff'..j]
 			buff.Icon:SetTexture('Interface\\ICONS\\Spell_ChargePositive')
-			
-			debuff = _G['arena'..i..'debuff'..j]
+		end
+		for k=1, 35 do
+			local debuff = _G['arena'..i..'debuff'..k]
 			debuff.Icon:SetTexture('Interface\\ICONS\\Spell_ChargeNegative')
+		end
+		for j=ArenaFramesDB.numBuffs+1, 35 do
+			local buff =  _G['arena'..i..'buff'..j]
+			buff:Hide()
+		end
+		for k=ArenaFramesDB.numDebuffs+1, 35 do
+			local debuff = _G['arena'..i..'debuff'..k]
+			debuff:Hide()
 		end
 	end
 end
