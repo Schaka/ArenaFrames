@@ -92,7 +92,18 @@ local function CreateArenaFrame(unit,x,y)
 	local ArenaFrame = CreateFrame('Button', unit..'_frame', UIParent, 'SecureActionButtonTemplate')
 	ArenaFrame:SetHeight(100)
 	ArenaFrame:SetWidth(232)
-	ArenaFrame:SetPoint('RIGHT', UIParent, x,y)
+	if ArenaFramesDB[unit] then
+		ArenaFrame:ClearAllPoints()
+		ArenaFrame:SetPoint(
+			ArenaFramesDB[unit].point,
+			getglobal(ArenaFramesDB[unit].relativeTo),
+			ArenaFramesDB[unit].relativePoint,
+			ArenaFramesDB[unit].xOfs,
+			ArenaFramesDB[unit].yOfs
+		)
+	else
+		ArenaFrame:SetPoint('RIGHT', UIParent, x,y)
+	end
 	ArenaFrame:SetFrameStrata('TOOLTIP')
 	ArenaFrame:RegisterForClicks('AnyUp')
 	ArenaFrame:SetScript('OnEnter', UnitFrame_OnEnter)
@@ -109,6 +120,17 @@ local function CreateArenaFrame(unit,x,y)
 		end)
 		ArenaFrame:SetScript("OnDragStop", function(self)
 			self:StopMovingOrSizing()
+			local point, relativeTo, relativePoint, xOfs, yOfs = ArenaFrame:GetPoint()
+			ArenaFramesDB[ArenaFrame.unit] = { }
+			ArenaFramesDB[ArenaFrame.unit].point = point
+			ArenaFramesDB[ArenaFrame.unit].relativePoint = relativePoint
+			if relativeTo then
+				ArenaFramesDB[ArenaFrame.unit].relativeTo = relativeTo:GetName()
+			else
+				ArenaFramesDB[ArenaFrame.unit].relativeTo = "UIParent"
+			end
+			ArenaFramesDB[ArenaFrame.unit].xOfs = xOfs
+			ArenaFramesDB[ArenaFrame.unit].yOfs = yOfs
 		end)
 		ArenaFrame:EnableMouse(true)
 	end
@@ -281,7 +303,7 @@ local function CreateArenaFrame(unit,x,y)
 end
 
 function ArenaHandler:SetFrameMove()
-	for i=1,5 do
+	for i=1,3 do
 		local ArenaFrame = _G["arena"..i.."_frame"]
 		if ArenaFramesDB.movable then
 			ArenaFrame:RegisterForDrag("LeftButton")
@@ -310,7 +332,7 @@ end
 
 function ArenaHandler:PLAYER_LOGIN()
 	--Creation of the ArenaFrames
-	for i=1,5 do
+	for i=1,3 do
 		CreateArenaFrame("arena"..i, x,-(i*spacing)+y)
 	end
 	self:CreateOptions()
@@ -416,7 +438,7 @@ function ArenaHandler:CreateOptions()
 end	
 
 function ArenaHandler:OnUpdate(elapsed)
-		for i=1, 5 do
+		for i=1, 3 do
 			if _G["arena"..i.."_castbar"].channel == false then
 				_G["arena"..i.."_castbar"]:SetValue(_G["arena"..i.."_castbar"]:GetValue()+elapsed)
 				local min, max = _G["arena"..i.."_castbar"]:GetMinMaxValues()
@@ -610,7 +632,7 @@ function ArenaHandler:PLAYER_ENTERING_WORLD()
 		end
 		unitDebuffs[k] = nil
 	end
-	for i=1,5 do
+	for i=1,3 do
 		for j=1, 35 do
 			buff = _G["arena"..i.."buff"..j]
 			buff.Icon:SetTexture(nil)
@@ -633,11 +655,12 @@ function ArenaHandler:Reset()
 	if select(2, IsInInstance()) == "arena" then
 		local status, mapName, instanceID, lowestlevel, highestlevel, teamSize, registeredMatch = GetBattlefieldStatus(1)
 		if teamSize == 0 then teamSize = 2 end
+		if teamSize > 3 then teamSize = 3 end
 		for i=1, teamSize do
 			_G['arena'..i..'_frame']:Show()
 		end
 	else
-		for i=1,5 do
+		for i=1,3 do
 			_G['arena'..i..'_frame']:Hide()
 			_G['arena'..i..'_castbar']:Hide()
 		end
@@ -714,7 +737,7 @@ function ArenaHandler:CalculateDebuffPositions(unit)
 end
 
 function ArenaHandler:ResizeAuras()
-	for i=1,5 do
+	for i=1,3 do
 		for j=1, ArenaFramesDB.numBuffs do
 			local buff = _G['arena'..i..'buff'..j]
 			buff:Show()
@@ -927,7 +950,7 @@ ArenaHandler:SetScript('OnUpdate', ArenaHandler.OnUpdate)
 
 --Slash command to show an example of the frames. /showaf
 SlashCmdList.SHOWAF = function()
-	for i=1,5 do
+	for i=1,3 do
 		_G['arena'..i..'_frame']:Show()
 		_G['arena'..i..'_name']:SetText('arena'..i)
 		_G['arena'..i..'_frameHealthText']:SetText(30000)

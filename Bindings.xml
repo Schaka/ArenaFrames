@@ -26,7 +26,7 @@
   <Binding name="CLICK arena4_frame:RightButton">
     -- target4!
   </Binding>
-  <Binding name="CCLICK arena5_frame:RightButton">
+  <Binding name="CLICK arena5_frame:RightButton">
     -- target5!
   </Binding>
 </Bindings>
