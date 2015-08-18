@@ -927,6 +927,12 @@ function ArenaHandler:CHAT_MSG_ADDON(prefix, message, distribution, sender)
 	end
 end
 
+function ArenaHandler:CHAT_MSG_BG_SYSTEM_NEUTRAL(message)
+	if msg == "The Arena battle has begun!" then
+		SendChatMessage(".spectator reset");
+	end
+end
+
 function ArenaHandler:COMBAT_LOG_EVENT_UNFILTERED(timestamp, event, sourceGUID,sourceName,sourceFlags,destGUID,destName,destFlags,spellID,spellName,extraSpellID,extraSpellName)
 	if (event == "SPELL_INTERRUPT") then
 		local unit = nameToUnit[destName]
@@ -945,6 +951,7 @@ ArenaHandler:RegisterEvent('PLAYER_ENTERING_WORLD')
 ArenaHandler:RegisterEvent('PLAYER_LOGIN')
 ArenaHandler:RegisterEvent('CHAT_MSG_ADDON')
 ArenaHandler:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED')
+ArenaHandler:RegisterEvent('CHAT_MSG_BG_SYSTEM_NEUTRAL')
 ArenaHandler:SetScript('OnEvent', ArenaHandler.HandleEvents)
 ArenaHandler:SetScript('OnUpdate', ArenaHandler.OnUpdate)
 
@@ -952,11 +959,14 @@ ArenaHandler:SetScript('OnUpdate', ArenaHandler.OnUpdate)
 SlashCmdList.SHOWAF = function()
 	for i=1,3 do
 		_G['arena'..i..'_frame']:Show()
-		_G['arena'..i..'_name']:SetText('arena'..i)
+		_G['arena'..i..'_name']:SetText(UnitName("player"))
 		_G['arena'..i..'_frameHealthText']:SetText(30000)
 		_G['arena'..i..'_framePowerText']:SetText(30000)
 		_G['arena'..i..'_classIcon']:SetTexCoord(0, 0.25, 0, 0.25)
 		_G['arena'..i..'_classIcon']:Show()
+		_G['arena'..i..'_frame']:SetAttribute("*type*", "macro")
+		_G['arena'..i..'_frame']:SetAttribute("macrotext1", "/targetexact "..UnitName("player"))
+		_G['arena'..i..'_frame']:SetAttribute('macrotext2', "/targetexact "..UnitName("player").."\n/focus\n/targetlasttarget")
 		_G['arena'..i..'_frameTrinketCooldown']:SetCooldown(GetTime(),120)
 		for j=1, 35 do
 			local buff = _G['arena'..i..'buff'..j]
